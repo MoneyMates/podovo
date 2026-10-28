@@ -67,7 +67,10 @@ module.exports = async (req, res) => {
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error('fidel-link', err);
-    return res.status(500).json({ error: 'Save failed' });
+    const msg = String(err && err.message);
+    const m = msg.match(/: (\d{3}) /);
+    const t = msg.match(/"type":"([A-Z_]+)"/);
+    return res.status(500).json({ error: 'Save failed', status: m ? m[1] : undefined, type: t ? t[1] : undefined });
   }
 };
 
