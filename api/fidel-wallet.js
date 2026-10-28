@@ -59,6 +59,15 @@ module.exports = async (req, res) => {
     return res.status(200).json({ cards, points, transactions });
   } catch (err) {
     console.error('fidel-wallet', err);
-    return res.status(500).json({ error: 'Lookup failed' });
+    // Say which setting is wrong, never its value.
+    const missing = ['AIRTABLE_TOKEN', 'AIRTABLE_BASE_ID'].filter((k) => !process.env[k]);
+    const m = String(err && err.message).match(/: (\d{3}) /);
+    const reason = missing.length
+      ? `missing ${missing.join(', ')}`
+      : m && m[1] === '401' ? 'Airtable token rejected'
+      : m && m[1] === '403' ? 'Airtable token lacks access to this base or scope'
+      : m && m[1] === '404' ? 'Airtable base or table not found'
+      : 'Airtable request failed';
+    return res.status(500).json({ error: 'Lookup failed', reason });
   }
 };
