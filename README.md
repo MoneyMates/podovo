@@ -5,6 +5,7 @@ Two serverless endpoints, deployed as their own Vercel project (separate from po
 | Endpoint | Who calls it | What it does |
 |---|---|---|
 | `POST /api/fidel-webhook` | Fidel | Saves linked cards and matched purchases (Pending on authorization, Confirmed when it clears, negative points on refunds). Verifies Fidel's signature and ignores anything older than 5 minutes. |
+| `POST /api/fidel-link` | Wallet page | Right after Fidel links a card, records which listener (email) it belongs to. Fidel only gets an opaque Podovo ID in card metadata, never the email. |
 | `GET /api/fidel-wallet?email=` | Wallet page | Returns the listener's linked cards (brand + last 4 only), points totals and last 20 matched purchases. CORS limited to podovo.ai and webflow.io. |
 
 No npm packages needed (Node 18+ `fetch`, built-in `crypto`).

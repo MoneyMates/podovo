@@ -22,6 +22,7 @@ global.fetch = async (url, opts = {}) => {
 };
 const hook = require('./api/fidel-webhook');
 const wallet = require('./api/fidel-wallet');
+const link = require('./api/fidel-link');
 const { expectedSignature, classify } = hook._test;
 
 function mkRes() { const r = { code: 0, body: null, headers: {} };
@@ -34,18 +35,21 @@ async function post(obj, { badSig = false, oldTs = false } = {}) {
   const res = mkRes(); await hook(req, res); return res;
 }
 (async () => {
-  assert.equal(classify({ id: 'c1', scheme: 'visa', lastNumbers: '4004' }).kind, 'card-linked');
+  assert.equal(classify({ id: 'c1c1c1c1-0000-4000-8000-000000000001', scheme: 'visa', lastNumbers: '4004' }).kind, 'card-linked');
   assert.equal(classify({ event: 'card.failed', card: { id: 'c9' } }).kind, 'card-failed');
-  assert.equal((await post({ id: 'c1' }, { badSig: true })).code, 401);
-  assert.equal((await post({ id: 'c1' }, { oldTs: true })).code, 401);
-  let r = await post({ id: 'c1', scheme: 'visa', lastNumbers: '4004', live: false });
+  assert.equal((await post({ id: 'c1c1c1c1-0000-4000-8000-000000000001' }, { badSig: true })).code, 401);
+  assert.equal((await post({ id: 'c1c1c1c1-0000-4000-8000-000000000001' }, { oldTs: true })).code, 401);
+  let r = await post({ id: 'c1c1c1c1-0000-4000-8000-000000000001', scheme: 'visa', lastNumbers: '4004', live: false });
   assert.equal(r.code, 200); assert.equal(r.body.kind, 'card-linked');
-  assert.equal(db['Fidel Cards'][0].fields.Email, 'listener@example.com');
-  r = await post({ id: 't1', amount: 12.4, currency: 'USD', auth: true, cleared: false, card: { id: 'c1' }, brand: { name: 'Corner Coffee' }, datetime: '2026-10-27T10:00:00Z' });
+  assert.equal(db['Fidel Cards'][0].fields.Email, undefined, 'webhook must not set email');
+  const lr = mkRes(); await link({ method: 'POST', headers: { origin: 'https://www.podovo.ai' }, body: { cardId: 'c1c1c1c1-0000-4000-8000-000000000001', email: 'Listener@Example.com' } }, lr);
+  assert.equal(lr.code, 200, JSON.stringify(lr.body));
+  const bad1 = mkRes(); await link({ method: 'POST', headers: {}, body: { cardId: 'x', email: 'a@b.c' } }, bad1); assert.equal(bad1.code, 400);
+  r = await post({ id: 't1', amount: 12.4, currency: 'USD', auth: true, cleared: false, card: { id: 'c1c1c1c1-0000-4000-8000-000000000001' }, brand: { name: 'Corner Coffee' }, datetime: '2026-10-27T10:00:00Z' });
   assert.equal(r.body.kind, 'auth');
-  r = await post({ id: 't1', amount: 12.4, currency: 'USD', auth: false, cleared: true, card: { id: 'c1' }, brand: { name: 'Corner Coffee' }, datetime: '2026-10-27T10:00:00Z' });
+  r = await post({ id: 't1', amount: 12.4, currency: 'USD', auth: false, cleared: true, card: { id: 'c1c1c1c1-0000-4000-8000-000000000001' }, brand: { name: 'Corner Coffee' }, datetime: '2026-10-27T10:00:00Z' });
   assert.equal(r.body.kind, 'clearing'); assert.equal(db['Fidel Transactions'].length, 1, 'clearing updates same row');
-  r = await post({ id: 't2', amount: -5, currency: 'USD', card: { id: 'c1', metadata: { id: 'listener@example.com' } }, brand: { name: 'Corner Coffee' }, originalTransactionId: 't1', datetime: '2026-10-28T10:00:00Z' });
+  r = await post({ id: 't2', amount: -5, currency: 'USD', card: { id: 'c1c1c1c1-0000-4000-8000-000000000001', metadata: { id: 'listener@example.com' } }, brand: { name: 'Corner Coffee' }, originalTransactionId: 't1', datetime: '2026-10-28T10:00:00Z' });
   assert.equal(r.body.kind, 'refund');
   const wr = mkRes(); await wallet({ method: 'GET', headers: { origin: 'https://www.podovo.ai' }, query: { email: 'Listener@example.com' } }, wr);
   assert.equal(wr.code, 200); console.log(JSON.stringify(wr.body), wr.headers['Access-Control-Allow-Origin']);

@@ -70,34 +70,19 @@ function pointsFor(amount) {
   return Math.round(Number(amount || 0) * rate);
 }
 
-// The Podovo user's email travels as card metadata.id (set by the Wallet page).
-// card.linked webhooks don't include metadata, so fetch the card from Fidel.
-async function fidelCardEmail(cardId) {
-  const key = process.env.FIDEL_SECRET_KEY;
-  if (!key || !cardId) return '';
-  const res = await fetch(`https://api.fidel.uk/v1/cards/${encodeURIComponent(cardId)}`, {
-    headers: { 'Fidel-Key': key, 'Content-Type': 'application/json' },
-  });
-  if (!res.ok) return '';
-  const data = await res.json();
-  const card = (data.items && data.items[0]) || data;
-  return String((card.metadata && card.metadata.id) || '').toLowerCase();
-}
-
+// The listener's email is saved against the card by /api/fidel-link when the
+// Wallet page links it. Card metadata.id is an opaque Podovo ID, not the email.
 async function emailForCard(card) {
-  const fromPayload = card && card.metadata && card.metadata.id;
-  if (fromPayload) return String(fromPayload).toLowerCase();
   const rows = await find(CARDS, `{Card ID} = ${q(card.id)}`, 1);
-  if (rows[0] && rows[0].fields.Email) return rows[0].fields.Email;
-  return fidelCardEmail(card.id);
+  return (rows[0] && rows[0].fields.Email) || '';
 }
 
 async function saveCard(card, status) {
+  // No Email here: /api/fidel-link sets it, and upsert keeps fields we omit.
   await upsert(
     CARDS,
     {
       'Card ID': card.id,
-      Email: await fidelCardEmail(card.id),
       Scheme: card.scheme || '',
       Last4: card.lastNumbers || '',
       Status: status,
