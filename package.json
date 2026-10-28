@@ -1,0 +1,8 @@
+{
+  "name": "podovo-fidel-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fidel API card-linking backend for the Podovo Wallet",
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node test.js" }
+}
