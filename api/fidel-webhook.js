@@ -8,7 +8,7 @@
 //   FIDEL_SECRET_KEY      Fidel secret API key (sk_test_... / sk_live_...), used to look up
 //                         which Podovo user a card belongs to
 //   FIDEL_WEBHOOK_URL     optional: the exact registered URL, if it differs from the request URL
-//   POINTS_PER_DOLLAR     points per $1 spent at a partner brand (Podovo sets this; default 1)
+//   POINTS_PER_DOLLAR     points per $1 spent at a partner brand (Podovo sets this; default 100)
 //   AIRTABLE_TOKEN, AIRTABLE_BASE_ID
 
 const crypto = require('crypto');
@@ -66,7 +66,7 @@ function classify(body) {
 }
 
 function pointsFor(amount) {
-  const rate = Number(process.env.POINTS_PER_DOLLAR || 1);
+  const rate = Number(process.env.POINTS_PER_DOLLAR || 100);
   return Math.round(Number(amount || 0) * rate);
 }
 

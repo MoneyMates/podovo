@@ -25,7 +25,7 @@ In Vercel: Add New › Project › import `MoneyMates/podovo`, framework preset 
 | `AIRTABLE_BASE_ID` | `app...` |
 | `FIDEL_SECRET_KEY` | Fidel secret API key (`sk_test_...` first, `sk_live_...` later) |
 | `FIDEL_WEBHOOK_SECRET` | The webhook `secretKey` from the Fidel dashboard |
-| `POINTS_PER_DOLLAR` | Points per $1 at a partner brand (default 1, set this to Podovo's real rate) |
+| `POINTS_PER_DOLLAR` | Points per $1 at a partner brand (default 100; 5,000 points = $1 when redeemed, so 2% back) |
 | `FIDEL_WEBHOOK_URL` | Optional. Only if the URL registered in Fidel differs from the deployed URL |
 
 ## 4. Register the webhook in Fidel (test mode)
