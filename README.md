@@ -6,6 +6,7 @@ Two serverless endpoints, deployed as their own Vercel project (separate from po
 |---|---|---|
 | `POST /api/fidel-webhook` | Fidel | Saves linked cards and matched purchases (Pending on authorization, Confirmed when it clears, negative points on refunds). Verifies Fidel's signature and ignores anything older than 5 minutes. |
 | `POST /api/fidel-link` | Wallet page | Right after Fidel links a card, records which listener (email) it belongs to. Fidel only gets an opaque Podovo ID in card metadata, never the email. |
+| `POST /api/link-bonus` | Wallet page | After a bank account is connected (Plaid), adds a one-time bonus for that bank (max 5 banks per listener). Card bonuses are added by `/api/fidel-link`. |
 | `GET /api/fidel-wallet?email=` | Wallet page | Returns the listener's linked cards (brand + last 4 only), points totals and last 20 matched purchases. CORS limited to podovo.ai and webflow.io. |
 
 No npm packages needed (Node 18+ `fetch`, built-in `crypto`).
@@ -26,6 +27,8 @@ In Vercel: Add New › Project › import `MoneyMates/podovo`, framework preset 
 | `FIDEL_SECRET_KEY` | Fidel secret API key (`sk_test_...` first, `sk_live_...` later) |
 | `FIDEL_WEBHOOK_SECRET` | The webhook `secretKey` from the Fidel dashboard |
 | `POINTS_PER_DOLLAR` | Points per $1 at a partner brand (default 100; 5,000 points = $1 when redeemed, so 2% back) |
+| `LINK_BONUS_POINTS` | Optional. Points for linking each card or bank account, once each (default 100). Saved in the Points Adjustments table with a unique `Bonus Key` |
+| `MAX_BANK_BONUSES` | Optional. Max bank-link bonuses per listener (default 5) |
 | `FIDEL_WEBHOOK_URL` | Optional. Only if the URL registered in Fidel differs from the deployed URL |
 
 ## 4. Register the webhook in Fidel (test mode)

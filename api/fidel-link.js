@@ -6,6 +6,7 @@
 // Env: AIRTABLE_TOKEN, AIRTABLE_BASE_ID, FIDEL_SECRET_KEY (recommended)
 
 const { upsert } = require('../lib/airtable');
+const { awardOnce, linkBonusPoints, cardKey } = require('../lib/bonus');
 
 const ALLOWED_ORIGINS = ['https://www.podovo.ai', 'https://podovo.ai'];
 
@@ -64,7 +65,23 @@ module.exports = async (req, res) => {
     if (card && card.live !== undefined) fields.Live = !!card.live;
     fields['Linked At'] = (card && card.created) || new Date().toISOString();
     await upsert('Fidel Cards', fields, ['Card ID']);
-    return res.status(200).json({ ok: true });
+
+    // One-time points bonus for linking this card. Never fails the link itself.
+    let bonus = 0;
+    try {
+      const points = linkBonusPoints();
+      const added = await awardOnce({
+        key: cardKey(email, cardId, fields.Scheme, fields.Last4),
+        email,
+        points,
+        label: 'Card linked bonus',
+        reason: `Linked ${fields.Scheme || 'card'}${fields.Last4 ? ' ending ' + fields.Last4 : ''}`,
+      });
+      if (added) bonus = points;
+    } catch (e) {
+      console.error('fidel-link bonus', e);
+    }
+    return res.status(200).json({ ok: true, bonus });
   } catch (err) {
     console.error('fidel-link', err);
     const msg = String(err && err.message);

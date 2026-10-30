@@ -4,5 +4,5 @@
   "private": true,
   "description": "Fidel API card-linking backend for the Podovo Wallet",
   "engines": { "node": ">=18" },
-  "scripts": { "test": "node test.js" }
+  "scripts": { "test": "node test.js && node test-bonus.js" }
 }
