@@ -85,6 +85,9 @@ module.exports = async (req, res) => {
       : m && m[1] === '403' ? 'Airtable token lacks access to this base or scope'
       : m && m[1] === '404' ? 'Airtable base or table not found'
       : 'Airtable request failed';
-    return res.status(500).json({ error: 'Lookup failed', reason });
+    const msg = String(err && err.message);
+    const tbl = msg.match(/^Airtable find ([^:]+):/);
+    const t = msg.match(/"type":"([A-Z_]+)"/);
+    return res.status(500).json({ error: 'Lookup failed', reason, table: tbl ? tbl[1] : undefined, type: t ? t[1] : undefined });
   }
 };
