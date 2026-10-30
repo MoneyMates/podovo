@@ -54,7 +54,16 @@ async function post(obj, { badSig = false, oldTs = false } = {}) {
   const wr = mkRes(); await wallet({ method: 'GET', headers: { origin: 'https://www.podovo.ai' }, query: { email: 'Listener@example.com' } }, wr);
   assert.equal(wr.code, 200); console.log(JSON.stringify(wr.body), wr.headers['Access-Control-Allow-Origin']);
   assert.deepEqual(wr.body.cards, [{ scheme: 'visa', last4: '4004' }]);
-  assert.deepEqual(wr.body.points, { pending: 0, confirmed: 62 - 25 });
+  assert.deepEqual(wr.body.points, { pending: 0, confirmed: 62 - 25 }, 'missing adjustments table does not break wallet');
+  // Points Adjustments: active rows add (or remove) confirmed points and show as Bonus.
+  db['Points Adjustments'] = [
+    { createdTime: '2026-10-29T09:00:00Z', fields: { Email: 'listener@example.com', Points: 500, Label: 'Welcome bonus', Active: true, Date: '2026-10-29T09:00:00Z' } },
+    { createdTime: '2026-10-29T10:00:00Z', fields: { Email: 'listener@example.com', Points: -100, Active: true } },
+  ];
+  const ar = mkRes(); await wallet({ method: 'GET', headers: { origin: 'https://www.podovo.ai' }, query: { email: 'Listener@example.com' } }, ar);
+  assert.deepEqual(ar.body.points, { pending: 0, confirmed: 62 - 25 + 500 - 100 });
+  assert.equal(ar.body.transactions[0].brand, 'Podovo bonus'); assert.equal(ar.body.transactions[0].status, 'Bonus');
+  assert.equal(ar.body.transactions[1].brand, 'Welcome bonus'); assert.equal(ar.body.transactions[1].points, 500);
   const bad = mkRes(); await wallet({ method: 'GET', headers: { origin: 'https://evil.com' }, query: { email: 'x' } }, bad);
   assert.equal(bad.code, 400); assert.equal(bad.headers['Access-Control-Allow-Origin'], undefined);
   console.log('ALL TESTS PASSED');

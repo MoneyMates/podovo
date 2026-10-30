@@ -26,9 +26,15 @@ module.exports = async (req, res) => {
   if (!email || !email.includes('@')) return res.status(400).json({ error: 'email required' });
 
   try {
-    const [cardRows, txRows] = await Promise.all([
+    const [cardRows, txRows, adjRows] = await Promise.all([
       find('Fidel Cards', `AND(LOWER({Email}) = ${q(email)}, {Status} = "Linked")`, 20),
       find('Fidel Transactions', `LOWER({Email}) = ${q(email)}`, 500),
+      // Discretionary points added by the Podovo team. Never let a problem with
+      // this table break the Wallet: on any error, just leave adjustments out.
+      find('Points Adjustments', `AND(LOWER({Email}) = ${q(email)}, {Active})`, 500).catch((err) => {
+        console.error('fidel-wallet adjustments', err);
+        return [];
+      }),
     ]);
 
     const cards = cardRows.map((r) => ({
@@ -42,16 +48,27 @@ module.exports = async (req, res) => {
       if (r.fields.Status === 'Pending') points.pending += p;
       else points.confirmed += p; // Confirmed, plus Refunded (negative) entries
     }
+    // Adjustments are always confirmed (positive adds, negative removes).
+    for (const r of adjRows) points.confirmed += Number(r.fields.Points || 0);
 
-    const transactions = txRows
-      .map((r) => ({
-        brand: r.fields.Brand || '',
-        amount: Number(r.fields.Amount || 0),
-        currency: r.fields.Currency || 'USD',
-        points: Number(r.fields.Points || 0),
-        status: r.fields.Status || 'Pending',
-        datetime: r.fields.Datetime || '',
-      }))
+    const purchases = txRows.map((r) => ({
+      brand: r.fields.Brand || '',
+      amount: Number(r.fields.Amount || 0),
+      currency: r.fields.Currency || 'USD',
+      points: Number(r.fields.Points || 0),
+      status: r.fields.Status || 'Pending',
+      datetime: r.fields.Datetime || '',
+    }));
+    const adjustments = adjRows.map((r) => ({
+      brand: r.fields.Label || 'Podovo bonus',
+      amount: 0,
+      currency: 'USD',
+      points: Number(r.fields.Points || 0),
+      status: 'Bonus',
+      datetime: r.fields.Date || r.createdTime || '',
+    }));
+
+    const transactions = purchases.concat(adjustments)
       .sort((a, b) => String(b.datetime).localeCompare(String(a.datetime)))
       .slice(0, 20);
 
